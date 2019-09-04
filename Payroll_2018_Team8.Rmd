@@ -1,0 +1,157 @@
+---
+title: "CityEmployee"
+author: "VCT, Shell Vince Rice"
+date: "11/2/2018"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+Let's take a look at the summary and the structure of dataset provided.
+```{r}
+library(readr)
+library(tidyr)
+library(dplyr)
+library(randomForest)
+library(tidyverse)
+library(caret)
+
+```
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(randomForest)
+
+
+thetrain <- rbind(data2014,data2015,data2016, data2017)
+names(thetrain) <- make.names(names(thetrain))
+
+thetrain$MOU[is.na(thetrain$MOU)] <- 0
+thetrain$Benefits.Plan[is.na(thetrain$Benefits.Plan)] <- "PT"
+thetrain$Pay.Grade[is.na(thetrain$Pay.Grade)] <- "70"
+thetrain$Old.Base.Pay[is.na(thetrain$Old.Base.Pay)] <- 0
+thetrain$Old.Overtime.Pay[is.na(thetrain$Old.Overtime.Pay)] <- 0
+thetrain$Old.Other.Pay..Payroll.Explorer.[is.na(thetrain$Old.Other.Pay..Payroll.Explorer.)] <- 0
+thetrain$Record.Number[is.na(thetrain$Record.Number)] <- 0
+
+thetrain$Overtime.Pay <- NULL
+thetrain$Base.Pay <- NULL
+thetrain$Other.Pay..Payroll.Explorer. <- NULL
+thetrain$Year <- NULL
+
+
+thetrain$Employment.Type <- as.factor(thetrain$Employment.Type)
+thetrain$MOU <- as.factor(thetrain$MOU)
+thetrain$Pay.Grade <- as.factor(thetrain$Pay.Grade)
+thetrain$Benefits.Plan <- as.factor(thetrain$Benefits.Plan)
+thetrain$Old.Base.Pay <- as.numeric(thetrain$Old.Base.Pay)
+thetrain$Old.Overtime.Pay <- as.numeric(thetrain$Old.Overtime.Pay)
+thetrain$Old.Other.Pay..Payroll.Explorer. <- as.numeric(thetrain$Old.Other.Pay..Payroll.Explorer.)
+
+
+thetrain$Old.Base.Pay[is.na(thetrain$Old.Base.Pay)] <- 0
+thetrain$Old.Overtime.Pay[is.na(thetrain$Old.Overtime.Pay)] <- 0
+thetrain$Old.Other.Pay..Payroll.Explorer.[is.na(thetrain$Old.Other.Pay..Payroll.Explorer.)] <- 0
+
+thetrain$Old.Base.Pay <- as.numeric(thetrain$Old.Base.Pay)
+thetrain$Old.Overtime.Pay <- as.numeric(thetrain$Old.Overtime.Pay)
+thetrain$Old.Other.Pay..Payroll.Explorer. <- as.numeric(thetrain$Old.Other.Pay..Payroll.Explorer.)
+typeof(thetrain$Q1.Payments)
+
+
+
+
+firstq <- thetrain
+firstq$Q2.Payments <- NULL
+secondq <- thetrain
+secondq$Q1.Payments <- NULL
+
+
+model1 <- train(
+  Q1.Payments ~ ., firstq,
+  method = "lm",
+  trControl = trainControl(
+    method = "cv", number = 10,
+    verboseIter = TRUE
+  )
+)
+
+model <- train(
+  Q2.Payments ~ ., secondq,
+  method = "lm",
+  trControl = trainControl(
+    method = "cv", number = 10,
+    verboseIter = TRUE
+  )
+)
+
+```
+
+
+
+```{r}
+
+
+plot(predict(model1),firstq$Q1.Payments,
+      xlab="predicted",ylab="actual")
+ abline(a=0,b=1)
+```
+
+
+```{r}
+
+thetest <- data2018
+names(thetest) <- make.names(names(thetest))
+
+thetest$MOU[is.na(thetest$MOU)] <- 0
+thetest$Benefits.Plan[is.na(thetest$Benefits.Plan)] <- "PT"
+thetest$Pay.Grade[is.na(thetest$Pay.Grade)] <- "70"
+thetest$Old.Base.Pay[is.na(thetest$Old.Base.Pay)] <- 0
+thetest$Old.Overtime.Pay[is.na(thetest$Old.Overtime.Pay)] <- 0
+thetest$Old.Other.Pay..Payroll.Explorer.[is.na(thetest$Old.Other.Pay..Payroll.Explorer.)] <- 0
+thetest$Record.Number[is.na(thetest$Record.Number)] <- 0
+
+
+thetest$Overtime.Pay <- NULL
+thetest$Base.Pay <- NULL
+thetest$Other.Pay..Payroll.Explorer. <- NULL
+thetest$Year <- NULL
+
+
+thetest$Employment.Type <- as.factor(thetest$Employment.Type)
+thetest$MOU <- as.factor(thetest$MOU)
+thetest$Pay.Grade <- as.factor(thetest$Pay.Grade)
+thetest$Benefits.Plan <- as.factor(thetest$Benefits.Plan)
+thetest$Old.Base.Pay <- as.numeric(thetest$Old.Base.Pay)
+thetest$Old.Overtime.Pay <- as.numeric(thetest$Old.Overtime.Pay)
+thetest$Old.Other.Pay..Payroll.Explorer. <- as.numeric(thetest$Old.Other.Pay..Payroll.Explorer.)
+
+
+thetest$Old.Base.Pay[is.na(thetest$Old.Base.Pay)] <- 0
+thetest$Old.Overtime.Pay[is.na(thetest$Old.Overtime.Pay)] <- 0
+thetest$Old.Other.Pay..Payroll.Explorer.[is.na(thetest$Old.Other.Pay..Payroll.Explorer.)] <- 0
+
+thetest$Old.Base.Pay <- as.numeric(thetest$Old.Base.Pay)
+thetest$Old.Overtime.Pay <- as.numeric(thetest$Old.Overtime.Pay)
+thetest$Old.Other.Pay..Payroll.Explorer. <- as.numeric(thetest$Old.Other.Pay..Payroll.Explorer.)
+
+result <- data.frame(predict(firstlr, thetest, interval = "confidence"))
+result2 <- data.frame(predict(secondlr, thetest, interval = "confidence"))
+typeof(result)
+data2018$`Q1 Payments` <- result$fit
+data2018$`Q2 Payments` <- result2$fit
+head(data2018)
+print(result)
+
+
+predictionResult <- data2018[which(data2018$`Record Number` == payroll_2018$Record.Number),]
+payroll_2018$Q1.Q2Payments.2018 <- data2018$`Q1 Payments`[match(payroll_2018$Record.Number, data2018$`Record Number`)]
+
+payroll_2018$X3 <- data2018$`Q2 Payments`[match(payroll_2018$Record.Number, data2018$`Record Number`)]
+
+write.csv(payroll_2018, file="payroll_2018_result")
+```
+
+
